@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { Stack, CfnOutput } from 'aws-cdk-lib';
+import { Stack, CfnOutput, RemovalPolicy } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as path from 'path';
@@ -28,7 +28,9 @@ export class AppStack extends Stack {
     // create ECR repo
     createEcrRepo(stackPrefix: string) {
         const repo = new ecr.Repository(this, 'EcrRepo', {
-            repositoryName: `${stackPrefix}-angchain-demo`,
+            repositoryName: `${stackPrefix}-langchain-demo`,
+            removalPolicy: RemovalPolicy.DESTROY,
+            autoDeleteImages: true
         });
     }
       

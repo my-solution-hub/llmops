@@ -80,20 +80,23 @@ export class InfraStack extends Stack {
       this,
       'SampleAppRole',
       props.sampleAppRoleProp
-    )
+    );
 
     // Create EKS Cluster
-    this.cluster = this.createEksCluster()
+    this.cluster = this.createEksCluster();
 
     // find role from name
-    const eksOwnerRole = Role.fromRoleName(this, 'EksOwnerRole', 'Admin')
+    const eksOwnerRole = Role.fromRoleName(this, 'EksOwnerRole', 'Admin');
     // add EKS access to a role
-    this.cluster.awsAuth.addMastersRole(eksOwnerRole)
+    this.cluster.awsAuth.addMastersRole(eksOwnerRole);
 
     // Add the Otel Addon
-    this.addOtelAddon(this.cluster.clusterName, props.otelAddonRoleArn)
+    this.addOtelAddon(this.cluster.clusterName, props.otelAddonRoleArn);
 
-    this.sampleAppNamespace = this.createNamespace('demo')
+    this.sampleAppNamespace = this.createNamespace('demo');
+
+    this.createAppServiceServiceAccount(stackPrefix);
+    
     // // Deploy the ngnix ingress.
     // this.ingressManifests = this.deployManifests(this.IngressManifestPath, []);
     // // Get the ingress external ip
@@ -194,8 +197,8 @@ export class InfraStack extends Stack {
     return serviceAccount
   }
 
-  createAppServiceServiceAccount() {
-    this.addFederatedPrincipal(this.sampleAppRole, this.sampleAppRole.roleName, true);
+  createAppServiceServiceAccount(stackPrefix: string) {
+    this.addFederatedPrincipal(this.sampleAppRole, `${stackPrefix}-sample-app-role`, true);
     return this.createAppServiceAccount(this.sampleAppRole.roleArn, this.APP_NAMESPACE, this.sampleAppNamespace, this.demoServiceAccount);
   }
 
@@ -246,9 +249,9 @@ export class InfraStack extends Stack {
     roleName: string,
     isServiceAccount: boolean
   ) {
-    const openIdConnectProviderIssuer =
-      this.cluster.openIdConnectProvider.openIdConnectProviderIssuer
-    const stringCondition = new CfnJson(this, `${roleName}OidcCondition`, {
+    const openIdConnectProviderIssuer = this.cluster.openIdConnectProvider.openIdConnectProviderIssuer;
+    const conditionId = roleName + '-OidcCondition';
+    const stringCondition = new CfnJson(this, conditionId, {
       value: {
         [`${openIdConnectProviderIssuer}:aud`]: 'sts.amazonaws.com',
         ...(isServiceAccount

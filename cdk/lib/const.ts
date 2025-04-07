@@ -1,5 +1,5 @@
 export class Constants {
-    public static readonly stackName = process.env.STACK_NAME || "llmops-demo";
+    public static readonly stackName = process.env.STACK_NAME || "llmops";
     public static readonly appNamespace = process.env.SAMPLE_APP_NAMESPACE || "demo";
     public static readonly templatePrefixName = process.env.TEMPLATE_PREFIX_NAME || this.stackName;
     

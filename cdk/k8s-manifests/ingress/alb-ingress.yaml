@@ -17,27 +17,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: api-gateway-java
+                name: demo-app
                 port:
-                  number: 8080
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: customers-service-java
-                port:
-                  number: 8081
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: vets-service-java
-                port:
-                  number: 8083
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: visits-service-java
-                port:
-                  number: 8082
+                  number: 8501

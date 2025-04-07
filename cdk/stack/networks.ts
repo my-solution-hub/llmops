@@ -32,10 +32,10 @@ export class NetworkStack extends Stack {
     });
 
     // Output the VPC and subnet IDs
-    new CfnOutput(this, 'LMLOpsVpcId', {
-      value: this.vpc.vpcId,
-      description: 'VPC ID',
-      exportName: 'LMLOpsVpcId',
-    });
+    // new CfnOutput(this, 'LlmOpsVpcId', {
+    //   value: this.vpc.vpcId,
+    //   description: 'VPC ID',
+    //   exportName: 'LMLOpsVpcId',
+    // });
   }
 }
