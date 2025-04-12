@@ -1,0 +1,243 @@
+openapi: 3.0.0
+info:
+  title: DevOps API
+  description: DevOps API - used for platform setup
+  version: 0.0.1
+servers:
+  - url: https://2c8e4d92f2.execute-api.us-west-2.amazonaws.com/prod/
+#    description: Optional server description, e.g. Main (production) server
+#  - url: http://staging-api.example.com
+#    description: Optional server description, e.g. Internal staging server for testing
+components:
+  schemas:
+    server:
+      properties:
+        name:
+          type: string
+        players:
+          type: integer
+        ip:
+          type: string
+        id:
+          type: string
+    networks:
+      properties:
+        stack_name:
+          type: string
+        vpc_id:
+          type: integer
+        cidr:
+          type: string
+        security_group:
+          type: string
+paths:
+  /servers:
+    get:
+      summary: returns a list of current running servers.
+      description: N/A
+      responses:
+        '200': # status code
+          description: A JSON array of servers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref:  '#/components/schemas/server'
+    delete:
+      summary: delete a game server
+      description: N/A
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stack_name
+              properties:
+                stack_name:
+                  type: string
+      responses:
+        '200':
+          description: "this function will try to delete the game server."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'Server is being deleted'
+    post:
+      summary: bootstrap a new server to host players, both 'SecurityGroupId' and 'SubnetId' are required as ParameterKey for parameter. There are also possible values, 'ServerName' and 'ServerGroupName' that can be used for ParameterKey for parameter.
+      description: N/A
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stack_name
+                - parameters
+              properties:
+                stack_name:
+                  type: string
+                parameters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      ParameterKey:
+                        type: string
+                        enum:
+                        - SecurityGroupId
+                        - SubnetId
+                        - ServerName
+                        - ServerGroupName
+                      ParameterValue:
+                        type: string
+
+      responses:
+        '200':
+          description: "Successfully created a new server"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/server'
+  # /servers/{server-id}:
+  #   get:
+  #     summary: returns a running server with ID.
+  #     description: N/A
+  #     parameters:
+  #       - in: path
+  #         name: server-id
+  #         schema:
+  #           type: string
+  #         required: true
+  #         description: The server id
+  #     responses:
+  #       '200': # status code
+  #         description: A server
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref:  '#/components/schemas/server'
+  #   delete:
+  #     summary: delete a game server
+  #     description: N/A
+  #     parameters:
+  #       - in: path
+  #         name: server-id
+  #         schema:
+  #           type: string
+  #         required: true
+  #         description: The server id
+  #     responses:
+  #       '200':
+  #         description: "Successfully deleted server"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/server'
+
+    # post:
+    #   summary: actions towards running server
+    #   description: N/A
+    #   parameters:
+    #     - in: path
+    #       name: server-id
+    #       schema:
+    #         type: string
+    #       required: true
+    #       description: The server id
+    #   requestBody:
+    #     required: true
+    #     content:
+    #       application/json:
+    #         schema:
+    #           type: object
+    #           properties:
+    #             action:
+    #               type: string
+    #               enum:
+    #                 - backup
+    #                 - restore
+    #                 - reboot
+    #                 - upgrade
+    #   responses:
+    #     '200':
+    #       description: "action completed"
+  /networks:
+    get:
+      summary: return a list of existing vpc networks
+      description: return a list of existing vpc networks
+      responses:
+        '200': # status code
+          description: A JSON array of vpc networks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref:  '#/components/schemas/networks'
+    delete:
+      summary: delete a vpc network
+      description: delete a vpc network, including subnets, security groups, internet gateway.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stack_name
+              properties:
+                stack_name:
+                  type: string
+      responses:
+        '200':
+          description: Network cloudformation stack is being deleted, need to check the cloudformation stack status to make sure it is deleted completely, the deletion process takes 3-5 minutes
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'Network is being deleted'
+    post: 
+      summary: create new vpc networks
+      description: create a new vpc network, including subnets, security groups, internet gateway.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stack_name
+              properties:
+                stack_name:
+                  type: string
+      responses:
+        '200':
+          description: deploying stack in cloudformation
+          content:
+            application/json:
+              schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+  /networks/random:
+    get:
+      summary: return a valid parameter values for creating new servers, including Subnet ID and Security Group ID
+      description: Check availability of VPC and subnets and return a valid parameter values for creating new servers, including  Subnet ID and Security Group ID
+      responses:
+        '200':
+          description: find valid parameter values for creating new servers, including Subnet ID and Security Group ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subnetId:
+                    type: string
+                  securityGroupId:
+                    type: string

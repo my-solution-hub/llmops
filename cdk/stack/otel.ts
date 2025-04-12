@@ -1,6 +1,7 @@
 import { Construct } from 'constructs'
 import { Stack, CfnOutput } from 'aws-cdk-lib'
 import * as ec2 from 'aws-cdk-lib/aws-ec2'
+import * as iam from 'aws-cdk-lib/aws-iam'
 import { Role, ServicePrincipal, ManagedPolicy } from 'aws-cdk-lib/aws-iam'
 import * as path from 'path'
 import {
@@ -36,6 +37,41 @@ export class OtelStack extends Stack {
 
     this.vpc = props.vpc
     this.cluster = props.eksCluster
+
+
+    const namespace = this.cluster.addManifest('ObservabilityNamespace', {
+      apiVersion: 'v1',
+      kind: 'Namespace',
+      metadata: { name: 'observability' }
+    });
+
+    const serviceAccount = this.cluster.addServiceAccount('AdotServiceAccount', {
+      name: 'adot-collector',
+      namespace: 'observability'
+    });
+
+    // Add required IAM permissions
+    // Add required IAM permissions
+    serviceAccount.role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchAgentServerPolicy'));
+    serviceAccount.role.addToPrincipalPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'logs:PutLogEvents',
+        'logs:CreateLogGroup',
+        'logs:CreateLogStream',
+        'logs:DescribeLogStreams',
+        'logs:DescribeLogGroups',
+        'cloudwatch:PutMetricData',
+        'xray:PutTraceSegments',
+        'xray:PutTelemetryRecords',
+        'xray:GetSamplingRules',
+        'xray:GetSamplingTargets',
+        'xray:GetSamplingStatisticSummaries'
+      ],
+      resources: ['*'],
+    }));
+
+    serviceAccount.node.addDependency(namespace);
 
     // create security group for ec2 instances
     const sg = new ec2.SecurityGroup(this, 'OtelCollectorSG', {

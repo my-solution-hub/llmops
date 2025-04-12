@@ -1,6 +1,9 @@
 # Local .terraform directories
 **/.terraform/*
 
+ppt should not be revealed
+**/*.pptx
+
 # .tfstate files
 *.tfstate
 *.tfstate.*

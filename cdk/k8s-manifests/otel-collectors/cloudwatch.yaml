@@ -1,0 +1,31 @@
+extensions:
+  health_check:
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch/metrics:
+    timeout: 60s
+
+exporters:
+  awsemf/application:
+    namespace: ECS/AWSOTel/Application
+    log_group_name: '/aws/ecs/application/metrics'
+    dimension_rollup_option: NoDimensionRollup
+    resource_to_telemetry_conversion:
+      enabled: true
+
+service:
+  pipelines:
+    metrics/application:
+      receivers: [otlp]
+      processors: [resourcedetection, resource, batch/metrics]
+      exporters: [awsemf/application]
+
+  extensions: [health_check]

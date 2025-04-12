@@ -17,3 +17,5 @@ docker tag llmops-demo:v0.1  ${ECR_ENDPOINT}/llmops-langchain-demo:v0.1
 docker push  ${ECR_ENDPOINT}/llmops-langchain-demo:v0.1
 
 ```
+
+openllmetry / langfuse / openlit

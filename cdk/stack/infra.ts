@@ -158,7 +158,7 @@ export class InfraStack extends Stack {
     cluster.addNodegroupCapacity('SampleAppNodeGroup', {
       nodeRole: this.eksNodeGroupRole,
       instanceTypes: [new InstanceType('t3.large')],
-      minSize: 4,
+      minSize: 5,
       maxSize: 10
     })
 

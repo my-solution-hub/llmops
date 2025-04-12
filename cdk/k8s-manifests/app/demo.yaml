@@ -23,20 +23,6 @@ spec:
           ports:
             - containerPort: 8501
           env:
-            - name: DJANGO_SETTINGS_MODULE
-              value: pet_clinic_billing_service.settings
+            - name: OTLP_ENDPOINT
+              value: adot-collector-collector.observability:4318
       restartPolicy: Always
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    service: demo-app
-  name: demo-app
-spec:
-  ports:
-    - name: "8501"
-      port: 8501
-      targetPort: 8501
-  selector:
-    service: demo-app
