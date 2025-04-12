@@ -18,14 +18,12 @@ if os.getenv("OTLP_ENDPOINT") is None:
     Traceloop.init(
         "devops-agent",
         disable_batch=True, 
-        api_key="b7cb33c9d262e7637d382840ef4db7ce0eed978ad177ff4cd4ea318e1a8a787676d74dc12d4d5b8107b5ff6f8c2637be",
-        # api_endpoint=os.getenv("OTLP_ENDPOINT"),
+        api_key=os.getenv("TRACELOOP_API_KEY"),
     )
 else:
     Traceloop.init(
         "devops-agent",
         disable_batch=True, 
-        # api_key="b7cb33c9d262e7637d382840ef4db7ce0eed978ad177ff4cd4ea318e1a8a787676d74dc12d4d5b8107b5ff6f8c2637be",
         api_endpoint=os.getenv("OTLP_ENDPOINT"),
     )
 

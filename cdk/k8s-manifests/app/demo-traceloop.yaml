@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: demo-app
+  name: demo-app
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: demo-app
+  template:
+    metadata:
+      labels:
+        service: demo-app
+    spec:
+      serviceAccountName: demo-service-account
+      containers:
+        - name: demo-app
+          image: ${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${STACK_NAME}-langchain-demo:${APP_VERSION}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8501
+          env:
+            - name: TRACELOOP_API_KEY
+              value: 123456
+      restartPolicy: Always
