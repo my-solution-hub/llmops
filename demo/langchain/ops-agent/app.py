@@ -15,7 +15,7 @@ import openlit
 import os
 
 framework = os.getenv("FRAMEWORK" | "openllmetry")
-if framework == "opentelemetry":
+if framework == "openllmetry":
     if os.getenv("OTLP_ENDPOINT") is None:
         Traceloop.init(
             "devops-agent",
