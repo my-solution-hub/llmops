@@ -11,22 +11,27 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, PromptTemplate
 
 from traceloop.sdk import Traceloop
+import openlit
 import os
 
-
-if os.getenv("OTLP_ENDPOINT") is None:
-    Traceloop.init(
-        "devops-agent",
-        disable_batch=True, 
-        api_key=os.getenv("TRACELOOP_API_KEY"),
+framework = os.getenv("FRAMEWORK" | "openllmetry")
+if framework == "opentelemetry":
+    if os.getenv("OTLP_ENDPOINT") is None:
+        Traceloop.init(
+            "devops-agent",
+            disable_batch=True, 
+            api_key=os.getenv("TRACELOOP_API_KEY"),
+        )
+    else:
+        Traceloop.init(
+            "devops-agent",
+            disable_batch=True, 
+            api_endpoint=os.getenv("OTLP_ENDPOINT"),
+        )
+elif framework == "openlit":
+    openlit.init(
+        otlp_endpoint=os.getenv("OTLP_ENDPOINT"), 
     )
-else:
-    Traceloop.init(
-        "devops-agent",
-        disable_batch=True, 
-        api_endpoint=os.getenv("OTLP_ENDPOINT"),
-    )
-
 
 # Initialize Bedrock client
 bedrock_runtime = boto3.client(
