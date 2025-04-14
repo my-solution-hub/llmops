@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: demo-app-openlit
+  name: demo-app-openlit
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: demo-app-openlit
+  template:
+    metadata:
+      labels:
+        service: demo-app-openlit
+    spec:
+      serviceAccountName: demo-service-account
+      containers:
+        - name: demo-app-openlit
+          image: ${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${STACK_NAME}-langchain-demo:${APP_VERSION}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8501
+          env:
+            - name: OTLP_ENDPOINT
+              value: http://adot-collector-collector.observability:4318
+            - name: FRAMEWORK
+              value: openlit
+      restartPolicy: Always
