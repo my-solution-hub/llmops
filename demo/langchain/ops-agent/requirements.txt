@@ -9,4 +9,4 @@ faiss-cpu
 httpx
 streamlit
 traceloop-sdk
-
+openlit

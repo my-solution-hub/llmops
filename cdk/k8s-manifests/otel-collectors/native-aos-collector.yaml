@@ -1,0 +1,60 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: adot-aos-collector
+  namespace: observability
+spec:
+  serviceAccount: adot-collector
+  mode: deployment
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317"
+          http:
+            endpoint: "0.0.0.0:4318"
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 30
+      batch:
+        timeout: 60s
+
+    exporters:
+      otlphttp/traces:
+        traces_endpoint: "https://${AOS_TRACES_INGESTION_PIPELINE_ENDPOINT}/v1/traces"
+        auth:
+          authenticator: sigv4auth/osis
+        compression: none
+      otlphttp/logs:
+        logs_endpoint: "https://${AOS_LOGS_INGESTION_PIPELINE_ENDPOINT}/v1/logs"
+        auth:
+          authenticator: sigv4auth/osis
+        compression: none        
+      otlphttp/metrics:
+        metrics_endpoint: "https://${AOS_METRICS_INGESTION_PIPELINE_ENDPOINT}/v1/metrics"
+        auth:
+          authenticator: sigv4auth/osis
+        compression: none
+    extensions:
+      health_check: {}
+      sigv4auth/osis:
+        region: "${AWS_REGION}"
+        service: "osis"
+    service:
+      extensions: [sigv4auth/osis]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: []
+          exporters: [otlphttp/traces]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp/logs]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlphttp/metrics]

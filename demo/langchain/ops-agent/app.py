@@ -34,7 +34,7 @@ bedrock_runtime = boto3.client(
     region_name="us-west-2",
 )
 
-model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+model_id = os.getenv("BEDROCK_MODEL_ID" | "anthropic.claude-3-sonnet-20240229-v1:0" )
 
 model_kwargs = {
     "max_tokens": 2048,

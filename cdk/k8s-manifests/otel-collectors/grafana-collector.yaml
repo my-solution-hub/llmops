@@ -1,7 +1,7 @@
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
-  name: adot-collector
+  name: adot-grafana-collector
   namespace: observability
 spec:
   serviceAccount: adot-collector
@@ -16,17 +16,23 @@ spec:
             endpoint: "0.0.0.0:4318"
     processors:
       batch:
-        timeout: 60s
+        timeout: 10s
     exporters:
       awsxray:
-        region: "${AWS_REGION}"
+        region: "ap-southeast-1"
         indexed_attributes: ["traceloop.entity.input"]
         # index_all_attributes: true
-      awsemf:
-        region: "${AWS_REGION}"
+      prometheusremotewrite:
+        endpoint: "https://aps-workspaces.ap-southeast-1.amazonaws.com/workspaces/ws-84eaf3e0-e80c-4de4-a6fd-94d61c9852e4/api/v1/remote_write"
+        auth:
+          authenticator: sigv4auth
     extensions:
+      sigv4auth:
+        region: "${AWS_REGION}"
+        service: "aps"
       health_check: {}
     service:
+      extensions: [sigv4auth]
       pipelines:
         traces:
           receivers: [otlp]
@@ -35,4 +41,4 @@ spec:
         metrics:
           receivers: [otlp]
           processors: [batch]
-          exporters: [awsemf]
+          exporters: [prometheusremotewrite]

@@ -2,27 +2,27 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    service: demo-app
-  name: demo-app
+    service: demo-app-grafana
+  name: demo-app-grafana
   namespace: demo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      service: demo-app
+      service: demo-app-grafana
   template:
     metadata:
       labels:
-        service: demo-app
+        service: demo-app-grafana
     spec:
       serviceAccountName: demo-service-account
       containers:
-        - name: demo-app
+        - name: demo-app-grafana
           image: ${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${STACK_NAME}-langchain-demo:${APP_VERSION}
           imagePullPolicy: Always
           ports:
             - containerPort: 8501
           env:
             - name: OTLP_ENDPOINT
-              value: adot-collector-collector.observability:4318
+              value: http://adot-grafana-collector-collector.observability:4318
       restartPolicy: Always

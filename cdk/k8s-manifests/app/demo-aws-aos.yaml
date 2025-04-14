@@ -2,27 +2,27 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    service: demo-app-trace-loop
-  name: demo-app-trace-loop
+    service: demo-app-aos
+  name: demo-app-aos
   namespace: demo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      service: demo-app-trace-loop
+      service: demo-app-aos
   template:
     metadata:
       labels:
-        service: demo-app-trace-loop
+        service: demo-app-aos
     spec:
       serviceAccountName: demo-service-account
       containers:
-        - name: demo-app-trace-loop
+        - name: demo-app-aos
           image: ${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${STACK_NAME}-langchain-demo:${APP_VERSION}
           imagePullPolicy: Always
           ports:
             - containerPort: 8501
           env:
-            - name: TRACELOOP_API_KEY
-              value: tl_5a5947350e9c4f459ab330f063b31dfd
+            - name: OTLP_ENDPOINT
+              value: http://adot-aos-collector-collector.observability:4318
       restartPolicy: Always

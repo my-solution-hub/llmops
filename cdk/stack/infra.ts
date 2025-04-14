@@ -1,14 +1,23 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import { Construct } from 'constructs'
+import * as cdk from 'aws-cdk-lib'
 import { StackProps, Stack, CfnJson, CfnOutput } from 'aws-cdk-lib'
-import { Vpc, InstanceType } from 'aws-cdk-lib/aws-ec2'
+import {
+  Vpc,
+  InstanceType,
+  SecurityGroup,
+  EbsDeviceVolumeType,
+  Peer,
+  Port
+} from 'aws-cdk-lib/aws-ec2'
 import {
   Role,
   RoleProps,
   PolicyStatement,
   FederatedPrincipal,
-  Effect
+  Effect,
+  AnyPrincipal
 } from 'aws-cdk-lib/aws-iam'
 import {
   CfnAddon,
@@ -27,14 +36,17 @@ import * as eks from 'aws-cdk-lib/aws-eks'
 import { KubectlV31Layer } from '@aws-cdk/lambda-layer-kubectl-v31'
 import { StringParameter } from 'aws-cdk-lib/aws-ssm'
 import { Constants } from '../lib/const'
-import { User } from 'aws-cdk-lib/aws-iam';
+import { User } from 'aws-cdk-lib/aws-iam'
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager'
 import {
-
   readYamlFile,
   getYamlFiles,
   transformNameToId,
   transformYaml
 } from '../util/utils'
+import * as opensearch from 'aws-cdk-lib/aws-opensearchservice'
+import * as aps from 'aws-cdk-lib/aws-aps'
+import { StringAttribute } from 'aws-cdk-lib/aws-cognito'
 
 export class InfraStack extends Stack {
   public readonly CLUSTER_NAME = Constants.CLUSTER_NAME
@@ -62,8 +74,8 @@ export class InfraStack extends Stack {
     const id = `${stackPrefix}-infra`
     super(scope, id, props)
 
-    this.vpc = props.vpc;
-    this.APP_NAMESPACE = props.appNamespace;
+    this.vpc = props.vpc
+    this.APP_NAMESPACE = props.appNamespace
 
     // The IAM roles must be created in the EKS stack because some of the roles need to be given federated principals, and this cannot be done if the role is imported
     this.eksClusterRole = new Role(
@@ -80,37 +92,23 @@ export class InfraStack extends Stack {
       this,
       'SampleAppRole',
       props.sampleAppRoleProp
-    );
+    )
 
     // Create EKS Cluster
-    this.cluster = this.createEksCluster();
+    this.cluster = this.createEksCluster()
 
     // find role from name
-    const eksOwnerRole = Role.fromRoleName(this, 'EksOwnerRole', 'Admin');
+    const eksOwnerRole = Role.fromRoleName(this, 'EksOwnerRole', 'Admin')
     // add EKS access to a role
-    this.cluster.awsAuth.addMastersRole(eksOwnerRole);
+    this.cluster.awsAuth.addMastersRole(eksOwnerRole)
 
-    // Add the Otel Addon
-    this.addOtelAddon(this.cluster.clusterName, props.otelAddonRoleArn);
+    this.sampleAppNamespace = this.createNamespace('demo')
 
-    this.sampleAppNamespace = this.createNamespace('demo');
+    this.createAppServiceServiceAccount(stackPrefix)
 
-    this.createAppServiceServiceAccount(stackPrefix);
-    
-    // // Deploy the ngnix ingress.
-    // this.ingressManifests = this.deployManifests(this.IngressManifestPath, []);
-    // // Get the ingress external ip
-    // this.ingressExternalAddress = this.getIngressExternalIp();
+    this.createOpensearchCluster(stackPrefix, this.vpc)
 
-    // // store the ingressExternalAddress value in parameter store
-    // new StringParameter(this, 'IngressExternalAddressParameter', {
-    //   parameterName: `/${this.stackName}/ingress-external-address`,
-    //   stringValue: this.ingressExternalAddress.value,
-    // });
-
-    // new CfnOutput(this, 'IngressExternalAddress', { value: this.ingressExternalAddress.value });
-    // Deploy the traffic generator
-    // this.deployManifests(this.trafficGeneratorManifestPath,  [this.sampleAppNamespace, ...this.ingressManifests, this.ingressExternalAddress]);
+    this.createPrometheus(stackPrefix)
   }
 
   createEksCluster () {
@@ -140,12 +138,12 @@ export class InfraStack extends Stack {
     })
 
     //add access using IAM user yagrxu
-    const myUser = User.fromUserName(this, 'YagrxuUser', 'yagrxu');
-    cluster.grantAccess("yagrxuUser", myUser.userArn, [
+    const myUser = User.fromUserName(this, 'YagrxuUser', 'yagrxu')
+    cluster.grantAccess('yagrxuUser', myUser.userArn, [
       eks.AccessPolicy.fromAccessPolicyName('AmazonEKSClusterAdminPolicy', {
         accessScopeType: eks.AccessScopeType.CLUSTER
       })
-    ]);
+    ])
 
     const adminRole = Role.fromRoleName(this, 'AdminRole', 'Admin')
     cluster.grantAccess('AdminRole', adminRole.roleArn, [
@@ -197,9 +195,18 @@ export class InfraStack extends Stack {
     return serviceAccount
   }
 
-  createAppServiceServiceAccount(stackPrefix: string) {
-    this.addFederatedPrincipal(this.sampleAppRole, `${stackPrefix}-sample-app-role`, true);
-    return this.createAppServiceAccount(this.sampleAppRole.roleArn, this.APP_NAMESPACE, this.sampleAppNamespace, this.demoServiceAccount);
+  createAppServiceServiceAccount (stackPrefix: string) {
+    this.addFederatedPrincipal(
+      this.sampleAppRole,
+      `${stackPrefix}-sample-app-role`,
+      true
+    )
+    return this.createAppServiceAccount(
+      this.sampleAppRole.roleArn,
+      this.APP_NAMESPACE,
+      this.sampleAppNamespace,
+      this.demoServiceAccount
+    )
   }
 
   deployManifests (manifestPath: string, dependencies: any[]) {
@@ -249,8 +256,9 @@ export class InfraStack extends Stack {
     roleName: string,
     isServiceAccount: boolean
   ) {
-    const openIdConnectProviderIssuer = this.cluster.openIdConnectProvider.openIdConnectProviderIssuer;
-    const conditionId = roleName + '-OidcCondition';
+    const openIdConnectProviderIssuer =
+      this.cluster.openIdConnectProvider.openIdConnectProviderIssuer
+    const conditionId = roleName + '-OidcCondition'
     const stringCondition = new CfnJson(this, conditionId, {
       value: {
         [`${openIdConnectProviderIssuer}:aud`]: 'sts.amazonaws.com',
@@ -279,17 +287,87 @@ export class InfraStack extends Stack {
     )
   }
 
-  addOtelAddon (clusterName: string, otelAddonRoleArn: string) {
-    // const podIdAddon = new CfnAddon(this, 'podIdAddon', {
-    //   addonName: 'eks-pod-identity-agent',
-    //   clusterName: this.cluster.clusterName,
-    //   resolveConflicts: 'OVERWRITE',
-    // });
-    // const cloudwatchAddon = new CfnAddon(this, 'AdotAddon', {
-    //   addonName: 'adot',
-    //   clusterName: this.cluster.clusterName,
-    //   serviceAccountRoleArn: otelAddonRoleArn,
-    //   resolveConflicts: 'OVERWRITE',
-    // });
+  createPrometheus (id: string) {
+    const workspace = new aps.CfnWorkspace(this, 'ManagedPrometheus', {
+      alias: `${id}-prometheus`
+    })
+
+    new CfnOutput(this, 'PrometheusWorkspaceId', {
+      value: workspace.attrWorkspaceId,
+      description: 'The ID of the Managed Prometheus workspace'
+    })
+  }
+  createOpensearchCluster (id: string, vpc: Vpc) {
+    const opensearchSecret = new secretsmanager.Secret(
+      this,
+      'OpenSearchSecret',
+      {
+        secretName: `${id}-opensearch-log-credentials`,
+        generateSecretString: {
+          secretStringTemplate: JSON.stringify({ username: 'admin' }),
+          generateStringKey: 'password',
+          requireEachIncludedType: true,
+          excludeCharacters: '@%*()_+=`~{}|[]\\:";\'?,./'
+          // excludePunctuation: true,
+        }
+      }
+    )
+
+    const opensearchSecurityGroup = new SecurityGroup(
+      this,
+      'OpenSearchSecurityGroup',
+      {
+        vpc,
+        description: 'Security group for OpenSearch cluster'
+      }
+    )
+    // opensearchSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'Allow HTTP access from anywhere');
+    opensearchSecurityGroup.addIngressRule(
+      Peer.anyIpv4(),
+      Port.tcp(443),
+      'Allow HTTPS access from anywhere'
+    )
+
+    const opensearchCluster = new opensearch.Domain(this, 'Domain', {
+      version: opensearch.EngineVersion.openSearch('2.17'),
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      securityGroups: [opensearchSecurityGroup],
+      domainName: `${id}-aos-log`,
+      capacity: {
+        dataNodes: 1,
+        multiAzWithStandbyEnabled: false,
+        dataNodeInstanceType: 'r7g.large.search',
+        masterNodes: 0
+      },
+      fineGrainedAccessControl: {
+        masterUserName: 'admin',
+        masterUserPassword: opensearchSecret.secretValueFromJson('password')
+      },
+
+      accessPolicies: [
+        new PolicyStatement({
+          effect: Effect.ALLOW,
+          principals: [new AnyPrincipal()],
+          actions: ['es:*'],
+          resources: ['*']
+        })
+      ],
+      enforceHttps: true,
+      zoneAwareness: {
+        enabled: false
+      },
+      ebs: {
+        volumeSize: 100,
+        volumeType: EbsDeviceVolumeType.GENERAL_PURPOSE_SSD_GP3
+      },
+      encryptionAtRest: {
+        enabled: true
+      },
+      nodeToNodeEncryption: true,
+      logging: {
+        slowSearchLogEnabled: true,
+        appLogEnabled: true
+      }
+    })
   }
 }

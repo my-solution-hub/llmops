@@ -20,6 +20,7 @@ export class IAMStack extends Stack {
   public readonly eksNodeGroupRoleProp: RoleProps
   public readonly otelAddonRoleArn: string
   public readonly sampleAppRoleProp: RoleProps
+  public readonly opensearechSinkRoleArn: string
 
   constructor (scope: Construct, stackPrefix: string, props?: any) {
     const id = `${stackPrefix}-iam`
@@ -73,6 +74,38 @@ export class IAMStack extends Stack {
       })
     )
     this.otelAddonRoleArn = otelAddonRole.roleArn
+
+    const opensearchSinkRole = new Role(this, 'OpenSearchSinkRole', {
+      roleName: `${stackPrefix}-opensearch-sink-role`,
+      description: 'Role for the OpenSearch Sink Addon',
+      assumedBy: new ServicePrincipal('osis-pipelines.amazonaws.com'),
+      inlinePolicies: {
+        DescribeSecretPolicy: new PolicyDocument({
+          statements: [
+            new PolicyStatement({
+              actions: [
+                'sts:AssumeRole',
+              ],
+              resources: ['*']
+            })
+          ]
+        }),
+        OpenSearchSink: new PolicyDocument({
+          statements: [
+            new PolicyStatement({
+              actions: [
+                'osis:*',
+                'es:*',
+              ],
+              resources: ['*']
+            })
+          ]
+        })
+      },
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName('AmazonOpenSearchServiceFullAccess')
+      ]
+    });
 
     this.eksClusterRoleProp = {
       roleName: `${stackPrefix}-cluster-role`,

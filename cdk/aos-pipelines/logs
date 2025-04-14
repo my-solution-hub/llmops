@@ -1,0 +1,26 @@
+version: "2"
+otel-logs-pipeline:
+  source:
+    otel_logs_source:
+      path: "/v1/logs"
+  processor:
+    - parse_json:
+        source: "body"                  
+    - parse_json:
+        source: "kubernetes"                  
+    - parse_json:
+        source: "annotations"                  
+    - parse_json:
+        source: "labels"              
+    - delete_entries:
+        with_keys: ["body", "kubernetes", "annotations", "labels"]
+    - date:
+        from_time_received: true
+        destination: "@timestamp"           
+  sink:
+    - opensearch:                  
+        index: "sample_app_logs"
+        hosts: ["${OPENSEARCH_ENDPOINT}"]
+        aws:                  
+          sts_role_arn: "arn:aws:iam::${ACCOUNT}:role/${STACK_NAME}-opensearch-sink-role"
+          region: "${AWS_REGION}"

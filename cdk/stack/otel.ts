@@ -47,10 +47,9 @@ export class OtelStack extends Stack {
 
     const serviceAccount = this.cluster.addServiceAccount('AdotServiceAccount', {
       name: 'adot-collector',
-      namespace: 'observability'
+      namespace: 'observability',
     });
 
-    // Add required IAM permissions
     // Add required IAM permissions
     serviceAccount.role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchAgentServerPolicy'));
     serviceAccount.role.addToPrincipalPolicy(new iam.PolicyStatement({
@@ -66,7 +65,13 @@ export class OtelStack extends Stack {
         'xray:PutTelemetryRecords',
         'xray:GetSamplingRules',
         'xray:GetSamplingTargets',
-        'xray:GetSamplingStatisticSummaries'
+        'xray:GetSamplingStatisticSummaries',
+        'aps:*',
+        'es:DescribeDomain',
+        'es:ESHttp*',
+        'osis:*',
+        'sts:TagSession',
+        'ec2:DescribeInstances',
       ],
       resources: ['*'],
     }));
