@@ -18,7 +18,7 @@ spec:
       serviceAccountName: demo-service-account
       containers:
         - name: demo-app-openlit
-          image: ${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${STACK_NAME}-langchain-demo:${APP_VERSION}
+          image: ${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${STACK_NAME}-langchain-demo-openlit:${APP_VERSION}
           imagePullPolicy: Always
           ports:
             - containerPort: 8501

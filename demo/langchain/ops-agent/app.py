@@ -9,13 +9,12 @@ from langchain_aws import ChatBedrock
 from langchain.agents import AgentExecutor, create_xml_agent
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, PromptTemplate
-
-from traceloop.sdk import Traceloop
-import openlit
 import os
+import asyncio
 
-framework = os.getenv("FRAMEWORK" | "openllmetry")
+framework = os.getenv("FRAMEWORK", "openllmetry")
 if framework == "openllmetry":
+    from traceloop.sdk import Traceloop
     if os.getenv("OTLP_ENDPOINT") is None:
         Traceloop.init(
             "devops-agent",
@@ -29,6 +28,7 @@ if framework == "openllmetry":
             api_endpoint=os.getenv("OTLP_ENDPOINT"),
         )
 elif framework == "openlit":
+    import openlit
     openlit.init(
         otlp_endpoint=os.getenv("OTLP_ENDPOINT"), 
     )
@@ -39,7 +39,7 @@ bedrock_runtime = boto3.client(
     region_name="us-west-2",
 )
 
-model_id = os.getenv("BEDROCK_MODEL_ID" | "anthropic.claude-3-sonnet-20240229-v1:0" )
+model_id = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0" )
 
 model_kwargs = {
     "max_tokens": 2048,
@@ -235,7 +235,6 @@ st.title("DevOps Assistant - Langchain")
 
 question = st.text_input("Enter your question:")
 instance_id = st.text_input("Enter EC2 Instance ID (if applicable):")
-
 if st.button("Submit"):
     if question:
         with st.spinner("Processing..."):

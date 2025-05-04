@@ -11,11 +11,20 @@ cdk deploy --all --require-approval never
 ```
 
 ```shell
+
+# openllmetry
 cd demo/langchain/ops-agent/
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_ENDPOINT
-docker build . -t llmops-demo:v0.1
-docker tag llmops-demo:v0.1  ${ECR_ENDPOINT}/llmops-langchain-demo:v0.1
-docker push  ${ECR_ENDPOINT}/llmops-langchain-demo:v0.1
+docker build . -t llmops-demo:${APP_VERSION}
+docker tag llmops-demo:${APP_VERSION}  ${ECR_ENDPOINT}/llmops-langchain-demo:${APP_VERSION}
+docker push  ${ECR_ENDPOINT}/llmops-langchain-demo:${APP_VERSION}
+
+# openlit
+cd demo/langchain/ops-agent/
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_ENDPOINT
+docker build . -t llmops-demo-openlit:${APP_VERSION}
+docker tag llmops-demo-openlit:${APP_VERSION}  ${ECR_ENDPOINT}/llmops-langchain-demo-openlit:${APP_VERSION}
+docker push  ${ECR_ENDPOINT}/llmops-langchain-demo-openlit:${APP_VERSION}
 
 ```
 

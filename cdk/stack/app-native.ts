@@ -27,8 +27,14 @@ export class AppStack extends Stack {
     
     // create ECR repo
     createEcrRepo(stackPrefix: string) {
-        const repo = new ecr.Repository(this, 'EcrRepo', {
+        const repo1 = new ecr.Repository(this, 'EcrRepo', {
             repositoryName: `${stackPrefix}-langchain-demo`,
+            removalPolicy: RemovalPolicy.DESTROY,
+            autoDeleteImages: true
+        });
+
+        const repo2 = new ecr.Repository(this, 'EcrRepo2', {
+            repositoryName: `${stackPrefix}-langchain-demo-openlit`,
             removalPolicy: RemovalPolicy.DESTROY,
             autoDeleteImages: true
         });
